@@ -67,6 +67,11 @@ make community-tree-check
 6. In the pull request, explain the problem, approach, verification and any known
    limitation or follow-up.
 
+Submitting a pull request does not guarantee acceptance or merging. Maintainers
+may accept, request changes, defer or close a contribution based on project
+direction, public scope, architectural consistency, security, quality,
+maintenance cost and release planning.
+
 Accepted contributions retain their authorship and original contribution reference.
 
 ## Privacy and test data
@@ -157,6 +162,9 @@ make community-tree-check
 ```
 
 6. 在 Pull Request 中说明问题、实现方式、验证结果、已知限制和后续事项。
+
+提交 Pull Request 不代表项目必须接受或合并该贡献。维护者将根据项目方向、公共范围、
+架构一致性、安全性、质量、维护成本和发布计划，决定接受、要求修改、暂缓或关闭贡献。
 
 被接受的贡献会保留作者归属和原始贡献引用。
 
