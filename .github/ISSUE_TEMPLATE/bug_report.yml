@@ -1,0 +1,79 @@
+name: Bug report / Bug 报告
+description: Report reproducible incorrect behavior / 报告可重复的错误行为
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve Nanexus Event Intelligence.
+
+        Do not report vulnerabilities or include credentials, private addresses, camera media, real event payloads, faces, license plates or personal data. Report security issues privately through SECURITY.md.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-submission checks / 提交前检查
+      options:
+        - label: I searched existing issues and found no duplicate. / 我已搜索已有 Issue，没有发现重复问题。
+          required: true
+        - label: I reproduced this on the latest Community version. / 我已在最新 Community 版本复现。
+          required: true
+        - label: I removed credentials, private endpoints, media and personal data. / 我已删除凭据、私有地址、媒体和个人数据。
+          required: true
+        - label: This is not a security vulnerability. / 这不是安全漏洞。
+          required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit / 版本或 Commit
+      placeholder: v0.1.0 or commit SHA
+    validations:
+      required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected component / 受影响组件
+      options:
+        - Community Demo
+        - Frigate MQTT adapter
+        - Frigate HTTP or media
+        - Event pipeline
+        - Rules or decisions
+        - Notifications or webhook
+        - Replay
+        - Web UI or API
+        - Installation or build
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment / 环境
+      description: OS, CPU architecture, Docker/Compose, Python/uv and Node/npm versions when relevant.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction / 最小复现步骤
+      description: Provide numbered steps using synthetic or redacted data only.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior / 预期行为
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior / 实际行为
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Sanitized logs or screenshots / 脱敏日志或截图
+      description: Optional. Include only the minimum needed and redact all sensitive data.

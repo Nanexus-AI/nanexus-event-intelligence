@@ -1,0 +1,44 @@
+services:
+  pipeline-worker:
+    environment:
+      NOTIFICATION_WEBHOOK_ENABLED: "true"
+      NOTIFICATION_WEBHOOK_URL: http://demo-webhook:8090/webhook
+      NOTIFICATION_WEBHOOK_TRUSTED_INTERNAL: "true"
+      NOTIFICATION_WEBHOOK_SECRET: community-demo-only
+    depends_on:
+      demo-webhook:
+        condition: service_healthy
+
+  demo-webhook:
+    profiles: ["demo"]
+    build:
+      context: ./backend
+      target: development
+    environment:
+      PYTHONPATH: /app/src
+    command: ["uv", "run", "--no-sync", "uvicorn", "nanexus_event_intelligence.demo.webhook_receiver:app", "--host", "0.0.0.0", "--port", "8090"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8090/health')"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+    volumes:
+      - ./backend/src:/app/src:ro
+
+  demo-runner:
+    profiles: ["demo"]
+    build:
+      context: ./backend
+      target: development
+    command: ["uv", "run", "--no-sync", "nanexus-community-demo"]
+    environment:
+      PYTHONPATH: /app/src
+      DATABASE_URL: postgresql+asyncpg://nanexus:nanexus@postgres:5432/nanexus
+    depends_on:
+      postgres:
+        condition: service_healthy
+      pipeline-worker:
+        condition: service_started
+    volumes:
+      - ./backend/src:/app/src:ro
+      - ./fixtures:/demo-fixtures:ro

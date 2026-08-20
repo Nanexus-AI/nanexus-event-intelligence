@@ -1,0 +1,12 @@
+Nanexus Event Intelligence
+Copyright 2026 Nanexus contributors
+
+This product includes software developed by Nanexus contributors.
+
+The Frigate name is used only to describe compatibility. Frigate is a separate
+third-party project. This project is independent and is not affiliated with,
+sponsored by, or endorsed by the Frigate project or its maintainers.
+
+Third-party dependencies retain their own copyright and license notices. Their
+resolved versions are recorded in backend/uv.lock and web/package-lock.json; the
+release process generates an SPDX SBOM for each published release.

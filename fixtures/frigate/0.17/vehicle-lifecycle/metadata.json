@@ -1,0 +1,8 @@
+{
+  "bundle_schema_version": "1.0",
+  "source_type": "frigate",
+  "source_version": "0.17.1-416a9b7",
+  "provenance": "structure-derived-from-real-capture-with-synthetic-values",
+  "contains_secrets": false,
+  "coverage": ["vehicle", "events", "reviews", "new", "update", "end"]
+}

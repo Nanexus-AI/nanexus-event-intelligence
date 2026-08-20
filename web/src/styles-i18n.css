@@ -1,0 +1,4 @@
+.header-actions { display: flex; align-items: flex-end; gap: 12px; }
+.language-select { display: grid; gap: 5px; color: #8293a3; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+.language-select select { min-width: 132px; padding: 9px 11px; }
+@media (max-width: 800px) { .header-actions { margin-top: 18px; flex-wrap: wrap; }.header-actions .status { margin-top: 0; } }

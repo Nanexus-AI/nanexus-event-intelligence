@@ -1,0 +1,50 @@
+name: Feature request / 功能建议
+description: Propose a user-focused Community improvement / 提出面向用户的 Community 改进
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-submission checks / 提交前检查
+      options:
+        - label: I searched existing issues and found no equivalent request. / 我已搜索已有 Issue，没有发现相同建议。
+          required: true
+        - label: This request can be discussed without private data or credentials. / 本建议不需要公开私有数据或凭据。
+          required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: User problem / 用户问题
+      description: Describe the problem and who experiences it before proposing a solution.
+    validations:
+      required: true
+  - type: textarea
+    id: current_workaround
+    attributes:
+      label: Current workaround / 当前替代办法
+  - type: textarea
+    id: proposed_outcome
+    attributes:
+      label: Smallest useful outcome / 最小可用结果
+      description: Describe observable behavior rather than internal implementation when possible.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered / 考虑过的其他方案
+  - type: textarea
+    id: impact
+    attributes:
+      label: Privacy, security and compatibility impact / 隐私、安全和兼容性影响
+      description: Include source-adapter, canonical-contract, network or data-retention implications.
+    validations:
+      required: true
+  - type: checkboxes
+    id: community_fit
+    attributes:
+      label: Community fit / Community 适用性
+      options:
+        - label: The proposal remains useful without a private package, service or license server. / 本建议不依赖私有包、服务或许可证服务器也有价值。
+          required: true

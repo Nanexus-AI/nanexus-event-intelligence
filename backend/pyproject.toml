@@ -1,0 +1,61 @@
+[project]
+name = "nanexus-event-intelligence"
+version = "0.1.0"
+description = "Local-first event intelligence and response layer"
+license = "Apache-2.0"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.115,<1",
+  "pydantic-settings>=2.7,<3",
+  "sqlalchemy[asyncio]>=2.0,<3",
+  "asyncpg>=0.30,<1",
+  "redis>=5.2,<7",
+  "structlog>=24.4,<26",
+  "uvicorn[standard]>=0.34,<1",
+  "alembic>=1.14,<2",
+  "uuid6>=2024.7.10,<2026",
+  "aiomqtt>=2.3,<3",
+  "httpx>=0.28,<1",
+  "paho-mqtt>=2.1,<3",
+]
+
+[project.scripts]
+frigate-fixture-recorder = "nanexus_event_intelligence.adapters.frigate.cli:main"
+frigate-http-smoke = "nanexus_event_intelligence.adapters.frigate.http_cli:main"
+nanexus-pipeline-worker = "nanexus_event_intelligence.pipeline.runtime:main"
+frigate-live-ingest = "nanexus_event_intelligence.adapters.frigate.live_cli:main"
+nanexus-replay = "nanexus_event_intelligence.replay.cli:main"
+nanexus-community-demo = "nanexus_event_intelligence.adapters.frigate.demo_cli:main"
+
+[dependency-groups]
+dev = [
+  "aiosqlite>=0.20,<1",
+  "mypy>=1.14,<2",
+  "pytest>=8.3,<9",
+  "pytest-asyncio>=0.25,<1",
+  "ruff>=0.9,<1",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/nanexus_event_intelligence"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+packages = ["nanexus_event_intelligence"]
