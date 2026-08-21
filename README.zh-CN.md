@@ -74,6 +74,21 @@ Replay 默认无副作用，并能生成确定性的规则结果摘要。
 通过受限制的同源代理按需获取 Frigate 快照。媒体不会被复制到 Nanexus 数据库、日志
 或 Git，来源凭据也不会发送给浏览器。
 
+## 🖥️ Live Demo 界面
+
+当前 Live Demo 界面较长，下面按顺序分为上下两部分展示。
+
+![Nanexus Event Intelligence Live Demo 界面——上半部分](./assets/Presentation1.png)
+
+*Live Demo 界面——上半部分。*
+
+![Nanexus Event Intelligence Live Demo 界面——下半部分](./assets/Presentation2.png)
+
+*Live Demo 界面——下半部分。*
+
+> **演示素材说明：** 上图中的摄像机画面为文档用途的模拟演示素材，不对应任何真实
+> 人物、场所或安防事件。
+
 ## 🚀 体验 Community Demo
 
 评估环境需要正在运行的 Docker、Docker Compose v2 或旧版 `docker-compose` 命令、
@@ -127,10 +142,27 @@ make live-demo
 
 ## 🧭 架构概览
 
-```text
-Source Adapter → Canonical Event → Persistence / Reliable Pipeline
-                               → Rules / Explainable Decisions
-                               → UI / Feedback / Notification / Replay
+v0.1.0 架构把来源特定的接入逻辑与来源中立的事件智能核心分开。
+
+**图例：** 实线表示主要事件处理与结果流；虚线表示受控的人工反馈和 Replay 闭环。
+
+```mermaid
+flowchart TB
+    SOURCE["1 · 事件来源<br/>Frigate MQTT · HTTP 历史 · 媒体"]
+    ADAPTER["2 · Frigate Reference Source Adapter<br/>接收 · 验证 · 规范化 · 受限制的媒体代理"]
+    CANONICAL["3 · 版本化 Canonical Model<br/>来源中立的事件事实"]
+    PIPELINE["4 · 可靠处理<br/>PostgreSQL · Outbox · Redis · Worker"]
+
+    SOURCE --> ADAPTER --> CANONICAL --> PIPELINE
+
+    PIPELINE --> DECISION["Community 规则<br/>可解释 Decision"]
+    PIPELINE --> APIUI["事件 API<br/>生命周期 UI"]
+    DECISION --> APIUI
+    DECISION --> NOTIFY["显式启用的 Webhook<br/>重试 · 幂等 · DLQ"]
+
+    APIUI -. "带版本的人工反馈" .-> PIPELINE
+    PIPELINE -.-> REPLAY["确定性 Replay<br/>无生产副作用"]
+    REPLAY -. "使用相同规则评估" .-> DECISION
 ```
 
 来源专有的 client、topic、payload 和 URL 只能停留在对应 Adapter 内。核心模块只消费
