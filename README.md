@@ -88,6 +88,22 @@ Fetch Frigate snapshots on demand through a constrained same-origin proxy. Media
 is not copied into the Nanexus database, logs or Git, and source credentials are
 never sent to the browser.
 
+## 🖥️ Live Demo interface
+
+The current Live Demo interface is shown below in two consecutive views.
+
+![Nanexus Event Intelligence Live Demo interface — upper section](./assets/Presentation1.png)
+
+*Live Demo interface — upper section.*
+
+![Nanexus Event Intelligence Live Demo interface — lower section](./assets/Presentation2.png)
+
+*Live Demo interface — lower section.*
+
+> **Demo media note:** The camera image shown above is synthetic demo media
+> generated for documentation. It does not depict a real person, property, or
+> security event.
+
 ## 🚀 Try the Community Demo
 
 This evaluation setup needs a running Docker daemon, Docker Compose v2 or the
@@ -145,10 +161,29 @@ system.
 
 ## 🧭 Architecture at a glance
 
-```text
-Source Adapter → Canonical Event → Persistence / Reliable Pipeline
-                               → Rules / Explainable Decisions
-                               → UI / Feedback / Notification / Replay
+The v0.1.0 architecture separates source-specific integration from the
+source-neutral event intelligence core.
+
+**Diagram legend:** solid arrows show the primary event-processing and outcome
+flow; dashed arrows show controlled human-feedback and Replay loops.
+
+```mermaid
+flowchart TB
+    SOURCE["1 · Event sources<br/>Frigate MQTT · HTTP history · media"]
+    ADAPTER["2 · Frigate Reference Source Adapter<br/>ingest · validate · normalize · constrained media proxy"]
+    CANONICAL["3 · Versioned Canonical Model<br/>source-neutral event facts"]
+    PIPELINE["4 · Reliable processing<br/>PostgreSQL · Outbox · Redis · workers"]
+
+    SOURCE --> ADAPTER --> CANONICAL --> PIPELINE
+
+    PIPELINE --> DECISION["Community rules<br/>explainable decisions"]
+    PIPELINE --> APIUI["Event API<br/>Lifecycle UI"]
+    DECISION --> APIUI
+    DECISION --> NOTIFY["Opt-in webhook<br/>retry · idempotency · DLQ"]
+
+    APIUI -. "revisioned feedback" .-> PIPELINE
+    PIPELINE -.-> REPLAY["Deterministic Replay<br/>no production side effects"]
+    REPLAY -. "same rule evaluation" .-> DECISION
 ```
 
 Source-specific clients, topics, payloads and URLs stay inside their Adapter.
