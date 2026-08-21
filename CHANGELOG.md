@@ -2,7 +2,7 @@
 
 All notable changes to the Community edition will be documented here.
 
-## 0.1.0 - Unreleased
+## 0.1.0 - 2026-08-20
 
 - Frigate Reference Source Adapter with MQTT, HTTP history and media access.
 - Canonical event persistence, reliable pipeline, Replay and audit trail.
