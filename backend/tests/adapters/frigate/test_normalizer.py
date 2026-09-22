@@ -50,7 +50,7 @@ def test_normalizes_realistic_review_and_detection_links() -> None:
         {"relation": "contains", "namespace": "frigate.event", "source_entity_id": "object-1"}
     ]
     assert event.extensions == {"severity": "alert"}
-    assert event.evidence[0]["media_type"] == "preview"
+    assert event.evidence[0]["media_type"] == "snapshot"
     assert event.evidence[0]["privacy_class"] == "local_only"
 
 
