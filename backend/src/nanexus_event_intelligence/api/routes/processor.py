@@ -37,6 +37,7 @@ from nanexus_event_intelligence.persistence.models import (
 )
 
 router = APIRouter(prefix="/processor", tags=["processor"])
+PROCESSOR_READABLE_STATES = frozenset({"running", "succeeded", "abstained", "failed"})
 
 
 def require_processor_identity(
@@ -136,7 +137,7 @@ async def subject_metadata(
     _: str = Depends(require_processor_identity),
 ) -> SubjectMetadata:
     job = await _job(session, job_id)
-    if job.status != "running" or job.subject_type != "review_item":
+    if job.status not in PROCESSOR_READABLE_STATES or job.subject_type != "review_item":
         raise HTTPException(status_code=404, detail="job subject not found")
     review = await session.get(ReviewItem, job.subject_id)
     if review is None:
@@ -172,8 +173,8 @@ async def evidence_content(
     _: str = Depends(require_processor_identity),
 ) -> Response:
     job = await _job(session, job_id)
-    if job.status != "running":
-        raise HTTPException(status_code=409, detail="processor job is not running")
+    if job.status not in PROCESSOR_READABLE_STATES:
+        raise HTTPException(status_code=409, detail="processor job is not readable")
     contract = JobContract.model_validate(job.payload)
     reference = next(
         (item for item in contract.evidence_refs if item.evidence_id == evidence_id), None

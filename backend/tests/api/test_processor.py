@@ -254,6 +254,98 @@ async def test_claim_subject_and_evidence_are_job_scoped(monkeypatch) -> None:
     get_settings.cache_clear()
 
 
+@pytest.mark.parametrize("readable_status", ["running", "succeeded", "abstained", "failed"])
+async def test_subject_and_granted_evidence_are_readable_without_mutation(
+    monkeypatch, readable_status
+) -> None:
+    app, factory, engine, (job_id, review_id, evidence_id) = await _app(monkeypatch)
+    headers = {"Authorization": "Bearer processor-secret"}
+    async with factory.begin() as session:
+        job = await session.get(ProcessorJob, job_id)
+        assert job is not None
+        job.status = readable_status
+        job.attempt_count = 3
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        subject = await client.get(f"/api/v1/processor/jobs/{job_id}/subject", headers=headers)
+        assert subject.status_code == 200
+        assert subject.json()["subject_id"] == str(review_id)
+        content = await client.get(
+            f"/api/v1/processor/jobs/{job_id}/evidence/{evidence_id}", headers=headers
+        )
+        assert content.status_code == 200
+        assert content.content == b"fixture-image"
+        assert content.headers["cache-control"] == "private, no-store"
+        assert content.headers["x-content-type-options"] == "nosniff"
+        denied = await client.get(
+            f"/api/v1/processor/jobs/{job_id}/evidence/{uuid4()}", headers=headers
+        )
+        assert denied.status_code == 403
+    async with factory() as session:
+        stored = await session.get(ProcessorJob, job_id)
+        assert stored is not None and stored.status == readable_status
+        assert stored.attempt_count == 3
+        assert await session.scalar(select(func.count()).select_from(ModelInvocation)) == 0
+        assert await session.scalar(select(func.count()).select_from(Claim)) == 0
+    await engine.dispose()
+    get_settings.cache_clear()
+
+
+@pytest.mark.parametrize("unreadable_status", ["pending", "retry_wait"])
+async def test_preclaim_subject_and_evidence_remain_unreadable(
+    monkeypatch, unreadable_status
+) -> None:
+    app, factory, engine, (job_id, _, evidence_id) = await _app(monkeypatch)
+    headers = {"Authorization": "Bearer processor-secret"}
+    async with factory.begin() as session:
+        job = await session.get(ProcessorJob, job_id)
+        assert job is not None
+        job.status = unreadable_status
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        subject = await client.get(f"/api/v1/processor/jobs/{job_id}/subject", headers=headers)
+        evidence = await client.get(
+            f"/api/v1/processor/jobs/{job_id}/evidence/{evidence_id}", headers=headers
+        )
+        assert subject.status_code == 404
+        assert evidence.status_code == 409
+    async with factory() as session:
+        stored = await session.get(ProcessorJob, job_id)
+        assert stored is not None and stored.status == unreadable_status
+    await engine.dispose()
+    get_settings.cache_clear()
+
+
+async def test_terminal_reads_survive_application_recreation(monkeypatch) -> None:
+    app, factory, engine, (job_id, review_id, evidence_id) = await _app(monkeypatch)
+    del app
+    async with factory.begin() as session:
+        job = await session.get(ProcessorJob, job_id)
+        assert job is not None
+        job.status = "succeeded"
+    restarted = create_app(factory)
+    restarted.state.evidence_content_reader = FakeReader()
+    headers = {"Authorization": "Bearer processor-secret"}
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=restarted), base_url="http://test"
+    ) as client:
+        subject = await client.get(f"/api/v1/processor/jobs/{job_id}/subject", headers=headers)
+        evidence = await client.get(
+            f"/api/v1/processor/jobs/{job_id}/evidence/{evidence_id}", headers=headers
+        )
+        assert subject.status_code == 200
+        assert subject.json()["subject_id"] == str(review_id)
+        assert evidence.status_code == 200
+        assert evidence.content == b"fixture-image"
+    async with factory() as session:
+        stored = await session.get(ProcessorJob, job_id)
+        assert stored is not None and stored.status == "succeeded"
+    await engine.dispose()
+    get_settings.cache_clear()
+
+
 @pytest.mark.parametrize("terminal", list(ResultStatus))
 async def test_terminal_results_persist_and_are_idempotent(monkeypatch, terminal) -> None:
     app, factory, engine, (job_id, review_id, evidence_id) = await _app(monkeypatch)
