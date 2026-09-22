@@ -1,5 +1,7 @@
 import hashlib
 import json
+from copy import deepcopy
+from datetime import timedelta
 from pathlib import Path
 
 from sqlalchemy import func, select
@@ -7,12 +9,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from nanexus_event_intelligence.adapters.frigate.pipeline import FrigateIngestPipeline
 from nanexus_event_intelligence.adapters.frigate.replay import FixtureMessage, load_fixture_bundle
+from nanexus_event_intelligence.core.contracts.processor_job import ProcessorJob as JobContract
 from nanexus_event_intelligence.persistence.models import (
+    Evidence,
     IngestCheckpoint,
     Observation,
     ObservedObject,
     OutboxEvent,
+    ProcessorJob,
     RawSourceMessage,
+    ReviewItem,
+    ReviewObservation,
     SourceEntityMap,
     SourceInstance,
 )
@@ -47,9 +54,93 @@ async def test_fixture_ingest_persists_complete_atomic_graph(session: AsyncSessi
     assert await count(session, Observation) == 6
     assert await count(session, ObservedObject) == 3
     assert await count(session, OutboxEvent) == 6
+    assert await count(session, ReviewItem) == 1
+    assert await count(session, ReviewObservation) == 3
+    assert await count(session, ProcessorJob) == 1
     assert await count(session, SourceEntityMap) == 2
+    review = await session.scalar(select(ReviewItem))
+    review_map = await session.scalar(
+        select(SourceEntityMap).where(SourceEntityMap.namespace == "frigate.review")
+    )
+    review_observations = list(
+        await session.scalars(
+            select(Observation)
+            .join(ReviewObservation, ReviewObservation.observation_id == Observation.id)
+            .order_by(Observation.occurred_at)
+        )
+    )
+    job = await session.scalar(select(ProcessorJob))
+    assert review is not None and review.status == "ended"
+    assert review.source_revision == review_observations[-1].source_revision
+    assert review_map is not None and review_map.entity_type == "review_item"
+    assert review_map.internal_entity_id == review.id
+    assert all(item.id != review.id for item in review_observations)
+    assert job is not None
+    contract = JobContract.model_validate(job.payload)
+    assert job.processor_type == "video_summary.caption_tags"
+    assert job.subject_type == "review_item"
+    assert job.subject_id == review.id
+    assert job.subject_revision == review.source_revision
+    assert {item.output_type for item in contract.requested_outputs} == {"caption", "tags"}
+    granted_ids = {item.evidence_id for item in contract.evidence_refs}
+    persisted_ids = set(await session.scalars(select(Evidence.id)))
+    assert granted_ids and granted_ids.issubset(persisted_ids)
     checkpoint = await session.scalar(select(IngestCheckpoint))
     assert checkpoint is not None and checkpoint.cursor == "5"
+
+
+async def test_review_lifecycle_revision_and_job_idempotency(session: AsyncSession) -> None:
+    source = await add_source(session)
+    messages = load_fixture_bundle(BUNDLE)
+    pipeline = FrigateIngestPipeline(session, source_instance_id=source.id)
+
+    await pipeline.ingest(messages[1], stream="reviews", cursor="0")
+    assert await count(session, ReviewItem) == 1
+    assert await count(session, ReviewObservation) == 1
+    assert await count(session, ProcessorJob) == 0
+    started_revision = await session.scalar(select(ReviewItem.source_revision))
+
+    await pipeline.ingest(messages[3], stream="reviews", cursor="1")
+    updated_revision = await session.scalar(select(ReviewItem.source_revision))
+    assert updated_revision != started_revision
+    assert await count(session, ReviewItem) == 1
+    assert await count(session, ReviewObservation) == 2
+    assert await count(session, ProcessorJob) == 0
+
+    await pipeline.ingest(messages[5], stream="reviews", cursor="2")
+    ended_revision = await session.scalar(select(ReviewItem.source_revision))
+    assert ended_revision != updated_revision
+    assert await count(session, ReviewObservation) == 3
+    assert await count(session, ProcessorJob) == 1
+
+    duplicate = await pipeline.ingest(messages[5], stream="reviews", cursor="3")
+    assert duplicate.status == "duplicate"
+    assert await count(session, ReviewItem) == 1
+    assert await count(session, ReviewObservation) == 3
+    assert await count(session, ProcessorJob) == 1
+
+    revised_payload = deepcopy(messages[5].payload)
+    after = revised_payload["after"]
+    assert isinstance(after, dict)
+    after["end_time"] = 1770000011
+    revised = FixtureMessage(
+        topic=messages[5].topic,
+        observed_at=messages[5].observed_at + timedelta(seconds=1),
+        qos=messages[5].qos,
+        retain=messages[5].retain,
+        payload_sha256="0" * 64,
+        payload=revised_payload,
+    )
+    await pipeline.ingest(revised, stream="reviews", cursor="4")
+    latest_revision = await session.scalar(select(ReviewItem.source_revision))
+    assert latest_revision != ended_revision
+    assert await count(session, ReviewItem) == 1
+    assert await count(session, ReviewObservation) == 4
+    assert await count(session, ProcessorJob) == 2
+    assert set(await session.scalars(select(ProcessorJob.subject_revision))) == {
+        ended_revision,
+        latest_revision,
+    }
 
 
 async def test_restart_resumes_from_checkpoint(session: AsyncSession) -> None:

@@ -15,7 +15,20 @@ from nanexus_event_intelligence.adapters.frigate.normalizer import (
 )
 from nanexus_event_intelligence.adapters.frigate.redaction import redact
 from nanexus_event_intelligence.adapters.frigate.replay import FixtureMessage, load_fixture_bundle
-from nanexus_event_intelligence.persistence.models import Evidence, ObservedObject, OutboxEvent
+from nanexus_event_intelligence.core.contracts.processor_job import (
+    EvidenceAvailability,
+    EvidenceRef,
+    EvidenceType,
+    PrivacyPolicy,
+    PrivacyRoute,
+)
+from nanexus_event_intelligence.persistence.models import (
+    Evidence,
+    ObservedObject,
+    OutboxEvent,
+    ReviewItem,
+    ReviewObservation,
+)
 from nanexus_event_intelligence.persistence.repositories import (
     IngestCheckpointRepository,
     NewObservation,
@@ -25,6 +38,7 @@ from nanexus_event_intelligence.persistence.repositories import (
     RawSourceMessageRepository,
     resolve_or_create_entity_mapping,
 )
+from nanexus_event_intelligence.processor import create_processor_job
 
 IngestStatus = Literal["persisted", "duplicate", "quarantined", "ignored"]
 
@@ -133,7 +147,7 @@ class FrigateIngestPipeline:
             source_instance_id=self.source_instance_id,
             namespace=event.source_namespace,
             source_entity_id=event.source_entity_id,
-            entity_type=event.event_kind,
+            entity_type=("review_item" if event.event_kind == "review" else event.event_kind),
         )
         observation = await self.observations.add(
             NewObservation(
@@ -157,19 +171,20 @@ class FrigateIngestPipeline:
                 extensions=event.extensions,
             )
         )
+        persisted_evidence: list[Evidence] = []
         for item in event.evidence:
-            self.session.add(
-                Evidence(
-                    source_instance_id=self.source_instance_id,
-                    observation_id=observation.id,
-                    media_type=str(item["media_type"]),
-                    source_ref=str(item["source_ref"]),
-                    captured_at=item.get("captured_at"),
-                    privacy_class=str(item.get("privacy_class", "local_only")),
-                    availability=str(item.get("availability", "unknown")),
-                    metadata_json=dict(item.get("metadata_json", {})),
-                )
+            evidence = Evidence(
+                source_instance_id=self.source_instance_id,
+                observation_id=observation.id,
+                media_type=str(item["media_type"]),
+                source_ref=str(item["source_ref"]),
+                captured_at=item.get("captured_at"),
+                privacy_class=str(item.get("privacy_class", "local_only")),
+                availability=str(item.get("availability", "unknown")),
+                metadata_json=dict(item.get("metadata_json", {})),
             )
+            self.session.add(evidence)
+            persisted_evidence.append(evidence)
         for item in event.objects:
             self.session.add(
                 ObservedObject(
@@ -182,6 +197,65 @@ class FrigateIngestPipeline:
                     track={},
                 )
             )
+        if event.event_kind == "review":
+            review = await self.session.get(ReviewItem, mapping.internal_entity_id)
+            review_status = {
+                "started": "active",
+                "updated": "active",
+                "ended": "ended",
+                "corrected": "corrected",
+                "deleted": "deleted",
+            }[event.lifecycle]
+            if review is None:
+                review = ReviewItem(
+                    id=mapping.internal_entity_id,
+                    camera_id=event.camera_id,
+                    status=review_status,
+                    severity=event.extensions.get("severity"),
+                    start_at=event.start_at or event.occurred_at,
+                    end_at=event.end_at,
+                    labels=list(event.labels),
+                    zones=list(event.zones),
+                    source_revision=event.source_revision,
+                )
+                self.session.add(review)
+            else:
+                review.camera_id = event.camera_id or review.camera_id
+                review.status = review_status
+                review.severity = event.extensions.get("severity") or review.severity
+                review.end_at = event.end_at or review.end_at
+                review.labels = list(event.labels)
+                review.zones = list(event.zones)
+                review.source_revision = event.source_revision
+            self.session.add(
+                ReviewObservation(review_item_id=review.id, observation_id=observation.id)
+            )
+            await self.session.flush()
+            if event.lifecycle == "ended":
+                evidence_refs = tuple(
+                    EvidenceRef(
+                        evidence_id=item.id,
+                        media_type=EvidenceType(item.media_type),
+                        privacy_class=PrivacyRoute(item.privacy_class),
+                        availability=EvidenceAvailability(item.availability),
+                        purpose="caption_tags",
+                    )
+                    for item in persisted_evidence
+                    if item.media_type == EvidenceType.SNAPSHOT
+                )
+                await create_processor_job(
+                    self.session,
+                    review_item=review,
+                    evidence_refs=evidence_refs,
+                    privacy_policy=PrivacyPolicy(
+                        policy_id="local-only",
+                        policy_version="1",
+                        route=PrivacyRoute.LOCAL_ONLY,
+                        external_network_allowed=False,
+                        retention="none",
+                    ),
+                    requested_at=event.observed_at,
+                )
         await OutboxEventRepository(self.session).add(
             OutboxEvent(
                 aggregate_type=event.event_kind,

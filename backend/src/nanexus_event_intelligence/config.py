@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     app_env: str = "development"
     app_host: str = "0.0.0.0"
     app_port: int = 8000
+    processor_api_token: SecretStr | None = None
     database_url: str = "postgresql+asyncpg://nanexus:nanexus@localhost:5432/nanexus"
     redis_url: str = "redis://localhost:6379/0"
     log_level: str = "INFO"

@@ -5,6 +5,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
+from nanexus_event_intelligence.adapters.frigate.evidence_reader import (
+    FrigateEvidenceContentReader,
+)
 from nanexus_event_intelligence.adapters.frigate.media_api import create_frigate_media_router
 from nanexus_event_intelligence.api.router import api_router
 from nanexus_event_intelligence.config import get_settings
@@ -27,6 +30,7 @@ def create_app(
 
     app = FastAPI(title="Nanexus Event Intelligence", version="0.1.0", lifespan=lifespan)
     app.state.session_factory = session_factory
+    app.state.evidence_content_reader = FrigateEvidenceContentReader(get_settings())
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["http://localhost:5173"],

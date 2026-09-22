@@ -1,0 +1,171 @@
+{
+  "processor_job": {
+    "job_id": "018f47d2-bd80-7a12-86d3-2e8f7961f72c",
+    "contract_version": "1.0",
+    "processor_type": "video_summary.caption_tags",
+    "subject_type": "review_item",
+    "subject_id": "018f47d2-c3aa-7dd0-80e2-1f73adf8eb10",
+    "subject_revision": "ended:3",
+    "evidence_refs": [
+      {
+        "evidence_id": "018f47d2-c784-7834-8232-362fad70f41f",
+        "media_type": "snapshot",
+        "privacy_class": "local_only",
+        "availability": "available",
+        "purpose": "representative"
+      }
+    ],
+    "requested_outputs": [
+      {
+        "output_type": "caption",
+        "schema_version": "1.0",
+        "required": true
+      },
+      {
+        "output_type": "tags",
+        "schema_version": "1.0",
+        "required": true
+      }
+    ],
+    "privacy_policy": {
+      "policy_id": "default-local",
+      "policy_version": "1.0.0",
+      "route": "local_only",
+      "external_network_allowed": false,
+      "retention": "none"
+    },
+    "idempotency_key": "processor-job:review_item:018f47d2-c3aa-7dd0-80e2-1f73adf8eb10:ended:3:video_summary.caption_tags:1.0",
+    "requested_at": "2026-08-21T16:00:00Z",
+    "trace_id": "018f47d2-cc90-75e1-b9c3-e00e70c18831"
+  },
+  "enrichment_results": {
+    "succeeded": {
+      "job_id": "018f47d2-bd80-7a12-86d3-2e8f7961f72c",
+      "idempotency_key": "processor-job:review_item:018f47d2-c3aa-7dd0-80e2-1f73adf8eb10:ended:3:video_summary.caption_tags:1.0",
+      "contract_version": "1.0",
+      "status": "succeeded",
+      "model_invocation": {
+        "invocation_id": "018f47d2-d114-78a1-9144-b363922ed32e",
+        "provider": "stub",
+        "model": "contract-fixture",
+        "model_version": "1.0.0",
+        "outcome": "succeeded",
+        "started_at": "2026-08-21T16:00:01Z",
+        "completed_at": "2026-08-21T16:00:02Z",
+        "privacy_route": "local_only",
+        "external_network_used": false
+      },
+      "claims": [
+        {
+          "claim_type": "caption",
+          "schema_version": "1.0",
+          "text": "A person is at the front entrance.",
+          "confidence": 0.92,
+          "evidence_ids": [
+            "018f47d2-c784-7834-8232-362fad70f41f"
+          ]
+        },
+        {
+          "claim_type": "tags",
+          "schema_version": "1.0",
+          "tags": [
+            "person",
+            "entrance"
+          ],
+          "confidence": 0.88,
+          "evidence_ids": [
+            "018f47d2-c784-7834-8232-362fad70f41f"
+          ]
+        }
+      ],
+      "errors": [],
+      "completed_at": "2026-08-21T16:00:02Z"
+    },
+    "abstained": {
+      "job_id": "018f47d2-bd80-7a12-86d3-2e8f7961f72c",
+      "idempotency_key": "processor-job:review_item:018f47d2-c3aa-7dd0-80e2-1f73adf8eb10:ended:3:video_summary.caption_tags:1.0",
+      "contract_version": "1.0",
+      "status": "abstained",
+      "model_invocation": {
+        "invocation_id": "018f47d2-d114-78a1-9144-b363922ed32f",
+        "provider": "stub",
+        "model": "contract-fixture",
+        "model_version": "1.0.0",
+        "outcome": "abstained",
+        "started_at": "2026-08-21T16:00:01Z",
+        "completed_at": "2026-08-21T16:00:01Z",
+        "privacy_route": "local_only",
+        "external_network_used": false
+      },
+      "claims": [],
+      "errors": [
+        {
+          "code": "evidence_unavailable",
+          "reason": "The selected Evidence is unavailable.",
+          "retryable": true
+        }
+      ],
+      "completed_at": "2026-08-21T16:00:01Z"
+    },
+    "failed": {
+      "job_id": "018f47d2-bd80-7a12-86d3-2e8f7961f72c",
+      "idempotency_key": "processor-job:review_item:018f47d2-c3aa-7dd0-80e2-1f73adf8eb10:ended:3:video_summary.caption_tags:1.0",
+      "contract_version": "1.0",
+      "status": "failed",
+      "model_invocation": {
+        "invocation_id": "018f47d2-d114-78a1-9144-b363922ed330",
+        "provider": "stub",
+        "model": "contract-fixture",
+        "model_version": "1.0.0",
+        "outcome": "failed",
+        "started_at": "2026-08-21T16:00:01Z",
+        "completed_at": "2026-08-21T16:00:01Z",
+        "privacy_route": "local_only",
+        "external_network_used": false
+      },
+      "claims": [],
+      "errors": [
+        {
+          "code": "provider_timeout",
+          "reason": "The provider timed out before producing claims.",
+          "retryable": true
+        }
+      ],
+      "completed_at": "2026-08-21T16:00:01Z"
+    }
+  },
+  "capability": {
+    "capability_contract_version": "1.0",
+    "platform_version": "0.1.0",
+    "api_versions": [
+      "1.0"
+    ],
+    "canonical_schema_versions": [
+      "1.0"
+    ],
+    "processor_contract_versions": [
+      "1.0"
+    ],
+    "enrichment_result_versions": [
+      "1.0"
+    ],
+    "supported_subject_types": [
+      "review_item"
+    ],
+    "supported_evidence_types": [
+      "snapshot"
+    ],
+    "claim_writeback": true,
+    "model_invocation": true,
+    "replay": true,
+    "dry_run": true,
+    "media_limits": {
+      "max_bytes": 10485760,
+      "allowed_content_types": [
+        "image/jpeg",
+        "image/png",
+        "image/webp"
+      ]
+    }
+  }
+}

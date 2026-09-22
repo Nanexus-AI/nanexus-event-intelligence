@@ -1,0 +1,297 @@
+{
+  "$defs": {
+    "CaptionClaim": {
+      "additionalProperties": false,
+      "properties": {
+        "claim_type": {
+          "const": "caption",
+          "title": "Claim Type",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 1024,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "confidence": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Confidence"
+        },
+        "evidence_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 16,
+          "minItems": 1,
+          "title": "Evidence Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "claim_type",
+        "schema_version",
+        "text",
+        "evidence_ids"
+      ],
+      "title": "CaptionClaim",
+      "type": "object"
+    },
+    "ModelInvocationFacts": {
+      "additionalProperties": false,
+      "description": "Processor facts; the platform creates the authoritative record.",
+      "properties": {
+        "invocation_id": {
+          "format": "uuid",
+          "title": "Invocation Id",
+          "type": "string"
+        },
+        "provider": {
+          "maxLength": 255,
+          "minLength": 1,
+          "title": "Provider",
+          "type": "string"
+        },
+        "model": {
+          "maxLength": 255,
+          "minLength": 1,
+          "title": "Model",
+          "type": "string"
+        },
+        "model_version": {
+          "maxLength": 255,
+          "minLength": 1,
+          "title": "Model Version",
+          "type": "string"
+        },
+        "outcome": {
+          "$ref": "#/$defs/ResultStatus"
+        },
+        "started_at": {
+          "format": "date-time",
+          "title": "Started At",
+          "type": "string"
+        },
+        "completed_at": {
+          "format": "date-time",
+          "title": "Completed At",
+          "type": "string"
+        },
+        "privacy_route": {
+          "$ref": "#/$defs/PrivacyRoute"
+        },
+        "external_network_used": {
+          "title": "External Network Used",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "invocation_id",
+        "provider",
+        "model",
+        "model_version",
+        "outcome",
+        "started_at",
+        "completed_at",
+        "privacy_route",
+        "external_network_used"
+      ],
+      "title": "ModelInvocationFacts",
+      "type": "object"
+    },
+    "PrivacyRoute": {
+      "enum": [
+        "local_only",
+        "cloud_redacted",
+        "cloud_allowed"
+      ],
+      "title": "PrivacyRoute",
+      "type": "string"
+    },
+    "ResultError": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "maxLength": 255,
+          "minLength": 1,
+          "title": "Code",
+          "type": "string"
+        },
+        "reason": {
+          "maxLength": 1024,
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "retryable": {
+          "title": "Retryable",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "code",
+        "reason",
+        "retryable"
+      ],
+      "title": "ResultError",
+      "type": "object"
+    },
+    "ResultStatus": {
+      "enum": [
+        "succeeded",
+        "abstained",
+        "failed"
+      ],
+      "title": "ResultStatus",
+      "type": "string"
+    },
+    "TagsClaim": {
+      "additionalProperties": false,
+      "properties": {
+        "claim_type": {
+          "const": "tags",
+          "title": "Claim Type",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "tags": {
+          "items": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 64,
+          "minItems": 1,
+          "title": "Tags",
+          "type": "array"
+        },
+        "confidence": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Confidence"
+        },
+        "evidence_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 16,
+          "minItems": 1,
+          "title": "Evidence Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "claim_type",
+        "schema_version",
+        "tags",
+        "evidence_ids"
+      ],
+      "title": "TagsClaim",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "job_id": {
+      "format": "uuid",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Idempotency Key",
+      "type": "string"
+    },
+    "contract_version": {
+      "const": "1.0",
+      "title": "Contract Version",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/ResultStatus"
+    },
+    "model_invocation": {
+      "$ref": "#/$defs/ModelInvocationFacts"
+    },
+    "claims": {
+      "items": {
+        "discriminator": {
+          "mapping": {
+            "caption": "#/$defs/CaptionClaim",
+            "tags": "#/$defs/TagsClaim"
+          },
+          "propertyName": "claim_type"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/$defs/CaptionClaim"
+          },
+          {
+            "$ref": "#/$defs/TagsClaim"
+          }
+        ]
+      },
+      "maxItems": 16,
+      "title": "Claims",
+      "type": "array"
+    },
+    "errors": {
+      "items": {
+        "$ref": "#/$defs/ResultError"
+      },
+      "maxItems": 16,
+      "title": "Errors",
+      "type": "array"
+    },
+    "completed_at": {
+      "format": "date-time",
+      "title": "Completed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "job_id",
+    "idempotency_key",
+    "contract_version",
+    "status",
+    "model_invocation",
+    "claims",
+    "errors",
+    "completed_at"
+  ],
+  "title": "EnrichmentResult",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nanexus.local/schemas/enrichment-result-v1.json"
+}

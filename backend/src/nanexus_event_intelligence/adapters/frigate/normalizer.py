@@ -149,7 +149,7 @@ def normalize_frigate_message(
     elif namespace == "frigate.review":
         evidence = [
             {
-                "media_type": "preview",
+                "media_type": "snapshot",
                 "source_ref": f"frigate:review:{entity_id}:preview:{revision}",
                 "captured_at": event_occurred_at,
                 "privacy_class": "local_only",
