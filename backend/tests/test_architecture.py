@@ -55,6 +55,9 @@ def test_community_source_has_no_private_or_pro_imports() -> None:
     violations: list[str] = []
     for path in PACKAGE_ROOT.rglob("*.py"):
         for module in imported_modules(path):
-            if module.startswith(PRIVATE_PREFIXES):
+            if any(
+                module == prefix or module.startswith(f"{prefix}.")
+                for prefix in PRIVATE_PREFIXES
+            ):
                 violations.append(f"{path.relative_to(PACKAGE_ROOT)} imports {module}")
     assert violations == []

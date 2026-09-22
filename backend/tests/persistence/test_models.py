@@ -32,6 +32,7 @@ EXPECTED_TABLES = {
     "observations",
     "observed_objects",
     "outbox_events",
+    "processor_jobs",
     "raw_source_messages",
     "review_items",
     "review_observations",
