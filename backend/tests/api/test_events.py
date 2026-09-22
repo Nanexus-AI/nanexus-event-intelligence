@@ -13,6 +13,8 @@ from nanexus_event_intelligence.persistence.models import (
     Feedback,
     ObservedObject,
     RawSourceMessage,
+    ReviewItem,
+    SourceEntityMap,
     SourceInstance,
 )
 from nanexus_event_intelligence.persistence.repositories import (
@@ -111,6 +113,26 @@ async def test_event_list_detail_and_feedback_round_trip() -> None:
             )
         )
         latest_id = latest.id
+        review_item = ReviewItem(
+            camera_id=camera.id,
+            status="ended",
+            start_at=now,
+            end_at=ended_at,
+            labels=["person"],
+            zones=["porch"],
+            source_revision="2",
+        )
+        session.add(review_item)
+        await session.flush()
+        session.add(
+            SourceEntityMap(
+                source_instance_id=source.id,
+                namespace="frigate.review",
+                source_entity_id="review-1",
+                entity_type="review_item",
+                internal_entity_id=review_item.id,
+            )
+        )
         for revision, lifecycle, occurred_at in (
             ("1", "started", now),
             ("2", "ended", ended_at),
@@ -167,6 +189,9 @@ async def test_event_list_detail_and_feedback_round_trip() -> None:
         detail = await client.get(f"/api/v1/events/{event_id}")
         assert detail.status_code == 200
         body = detail.json()
+        assert body["review_item_id"] == str(review_item.id)
+        assert body["site_id"] == "home"
+        assert body["camera_timezone"] == "UTC"
         assert body["raw_message"]["payload"]["password"] == "[REDACTED]"
         assert body["objects"][0]["confidence"] == 0.92
         assert body["evidence"][0]["availability"] == "available"

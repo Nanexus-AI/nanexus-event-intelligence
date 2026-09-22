@@ -12,13 +12,18 @@ from nanexus_event_intelligence.persistence.models import (
     Action,
     AuditRecord,
     Camera,
+    Claim,
+    ClaimEvidence,
     Decision,
     Evidence,
     Feedback,
+    ModelInvocation,
     Notification,
     Observation,
     ObservedObject,
+    ProcessorJob,
     RawSourceMessage,
+    SourceEntityMap,
     SourceInstance,
 )
 
@@ -106,6 +111,43 @@ class NotificationResponse(BaseModel):
     created_at: datetime
 
 
+class ClaimResponse(BaseModel):
+    id: UUID
+    predicate: str
+    value: dict[str, Any]
+    confidence: float | None
+    abstained: bool
+    evidence_unavailable: bool
+    producer_type: str
+    producer_version: str
+    evidence_ids: list[UUID]
+
+
+class InvocationResponse(BaseModel):
+    id: UUID
+    provider: str
+    model: str
+    runtime_version: str | None
+    status: str
+    privacy_route: str
+    started_at: datetime | None
+    completed_at: datetime | None
+    latency_ms: int | None
+    error_code: str | None
+    error_message: str | None
+
+
+class EnrichmentResponse(BaseModel):
+    job_id: UUID
+    status: str
+    subject_revision: str
+    attempt_count: int
+    last_error_code: str | None
+    last_error: str | None
+    claims: list[ClaimResponse]
+    invocation: InvocationResponse | None
+
+
 class FeedbackResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -142,6 +184,9 @@ class TimelineItem(BaseModel):
 
 class EventDetail(BaseModel):
     id: UUID
+    review_item_id: UUID | None
+    site_id: str | None
+    camera_timezone: str | None
     source_instance_id: UUID
     source_name: str
     source_type: str
@@ -167,6 +212,7 @@ class EventDetail(BaseModel):
     raw_message: RawMessageResponse | None
     objects: list[ObjectResponse]
     evidence: list[EvidenceResponse]
+    enrichments: list[EnrichmentResponse]
     decisions: list[DecisionResponse]
     notifications: list[NotificationResponse]
     feedback: FeedbackResponse | None
@@ -414,6 +460,96 @@ async def get_event(
             )
         ).all()
     )
+    mapping = await session.scalar(
+        select(SourceEntityMap).where(
+            SourceEntityMap.source_instance_id == observation.source_instance_id,
+            SourceEntityMap.namespace == observation.source_namespace,
+            SourceEntityMap.source_entity_id == observation.source_entity_id,
+        )
+    )
+    review_item_id = (
+        mapping.internal_entity_id
+        if (
+            mapping is not None
+            and observation.event_kind == "review"
+            and mapping.entity_type in {"review_item", "review"}
+        )
+        else None
+    )
+    enrichments: list[EnrichmentResponse] = []
+    if review_item_id is not None:
+        jobs = list(
+            (
+                await session.scalars(
+                    select(ProcessorJob)
+                    .where(
+                        ProcessorJob.subject_type == "review_item",
+                        ProcessorJob.subject_id == review_item_id,
+                    )
+                    .order_by(ProcessorJob.created_at.desc(), ProcessorJob.id.desc())
+                )
+            ).all()
+        )
+        for job in jobs:
+            invocation = await session.scalar(
+                select(ModelInvocation).where(ModelInvocation.processor_job_id == job.id)
+            )
+            claim_rows = (
+                list(
+                    (
+                        await session.scalars(
+                            select(Claim)
+                            .where(
+                                Claim.review_item_id == review_item_id,
+                                Claim.model_invocation_id == invocation.id,
+                            )
+                            .order_by(Claim.created_at, Claim.id)
+                        )
+                    ).all()
+                )
+                if invocation is not None
+                else []
+            )
+            claim_items: list[ClaimResponse] = []
+            for claim in claim_rows:
+                evidence_ids = list(
+                    (
+                        await session.scalars(
+                            select(ClaimEvidence.evidence_id)
+                            .where(ClaimEvidence.claim_id == claim.id)
+                            .order_by(ClaimEvidence.evidence_id)
+                        )
+                    ).all()
+                )
+                claim_items.append(
+                    ClaimResponse(
+                        id=claim.id,
+                        predicate=claim.predicate,
+                        value=claim.value,
+                        confidence=claim.confidence,
+                        abstained=claim.abstained,
+                        evidence_unavailable=claim.evidence_unavailable,
+                        producer_type=claim.producer_type,
+                        producer_version=claim.producer_version,
+                        evidence_ids=evidence_ids,
+                    )
+                )
+            enrichments.append(
+                EnrichmentResponse(
+                    job_id=job.id,
+                    status=job.status,
+                    subject_revision=job.subject_revision,
+                    attempt_count=job.attempt_count,
+                    last_error_code=job.last_error_code,
+                    last_error=job.last_error,
+                    claims=claim_items,
+                    invocation=(
+                        InvocationResponse.model_validate(invocation, from_attributes=True)
+                        if invocation
+                        else None
+                    ),
+                )
+            )
     notifications = list(
         (
             await session.execute(
@@ -455,12 +591,16 @@ async def get_event(
             )
         },
         source_name=source.name,
+        review_item_id=review_item_id,
+        site_id=camera.site_id if camera else None,
+        camera_timezone=camera.timezone if camera else None,
         source_type=source.source_type,
         source_version=source.source_version,
         camera_name=camera.display_name if camera else None,
         raw_message=RawMessageResponse.model_validate(raw, from_attributes=True) if raw else None,
         objects=[ObjectResponse.model_validate(item) for item in objects],
         evidence=[EvidenceResponse.model_validate(item) for item in evidence],
+        enrichments=enrichments,
         decisions=[DecisionResponse.model_validate(item) for item in decisions],
         notifications=[
             NotificationResponse(
