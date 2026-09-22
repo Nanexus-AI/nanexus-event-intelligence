@@ -142,9 +142,7 @@ async def test_review_item_identity_latest_observation_and_enrichment(monkeypatc
         assert {value for claim in enrichment["claims"] for value in claim["evidence_ids"]} == {
             evidence_id
         }
-        assert {claim["id"] for claim in enrichment["claims"]} == set(
-            submitted.json()["claim_ids"]
-        )
+        assert {claim["id"] for claim in enrichment["claims"]} == set(submitted.json()["claim_ids"])
 
         by_observation = await client.get(f"/api/v1/events/{observation_id}")
         assert by_observation.status_code == 200

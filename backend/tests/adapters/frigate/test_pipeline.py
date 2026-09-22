@@ -98,7 +98,7 @@ async def test_review_lifecycle_revision_and_job_idempotency(session: AsyncSessi
     assert await count(session, ReviewItem) == 1
     assert await count(session, ReviewObservation) == 1
     assert await count(session, ProcessorJob) == 0
-    started_revision = (await session.scalar(select(ReviewItem.source_revision)))
+    started_revision = await session.scalar(select(ReviewItem.source_revision))
 
     await pipeline.ingest(messages[3], stream="reviews", cursor="1")
     updated_revision = await session.scalar(select(ReviewItem.source_revision))

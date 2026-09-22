@@ -369,9 +369,7 @@ async def test_terminal_results_persist_and_are_idempotent(monkeypatch, terminal
         assert await session.scalar(select(func.count()).select_from(ModelInvocation)) == 1
         expected_claims = 2 if terminal is ResultStatus.SUCCEEDED else 0
         assert await session.scalar(select(func.count()).select_from(Claim)) == expected_claims
-        claim_evidence_count = await session.scalar(
-            select(func.count()).select_from(ClaimEvidence)
-        )
+        claim_evidence_count = await session.scalar(select(func.count()).select_from(ClaimEvidence))
         assert claim_evidence_count == expected_claims
         evidence_links = await session.scalar(
             select(func.count()).select_from(ModelInvocationEvidence)

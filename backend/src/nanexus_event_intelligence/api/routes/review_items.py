@@ -57,7 +57,7 @@ async def latest_observation_id_for_review(
             )
             .order_by(Observation.occurred_at.desc(), Observation.id.desc())
             .limit(1)
-        )
+        ),
     )
 
 
