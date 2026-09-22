@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nanexus.local/schemas/processor-job-v1.json",
+  "title": "Nanexus Processor Job v1",
+  "description": "Transport-neutral request for one idempotent enrichment attempt.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["job_id", "contract_version", "processor_type", "subject_type", "subject_id", "subject_revision", "evidence_refs", "requested_outputs", "privacy_policy", "idempotency_key", "requested_at", "trace_id"],
+  "properties": {
+    "job_id": {"type": "string", "format": "uuid"},
+    "contract_version": {"const": "1.0"},
+    "processor_type": {"type": "string", "minLength": 1, "maxLength": 255},
+    "subject_type": {"const": "review_item"},
+    "subject_id": {"type": "string", "format": "uuid"},
+    "subject_revision": {"type": "string", "minLength": 1, "maxLength": 255},
+    "evidence_refs": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 16,
+      "items": {"$ref": "#/$defs/evidence_ref"}
+    },
+    "requested_outputs": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 16,
+      "items": {"$ref": "#/$defs/requested_output"}
+    },
+    "privacy_policy": {"$ref": "#/$defs/privacy_policy"},
+    "idempotency_key": {"type": "string", "minLength": 1, "maxLength": 512},
+    "requested_at": {"type": "string", "format": "date-time"},
+    "trace_id": {"type": "string", "format": "uuid"}
+  },
+  "$defs": {
+    "evidence_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidence_id", "media_type", "privacy_class", "availability", "purpose"],
+      "properties": {
+        "evidence_id": {"type": "string", "format": "uuid"},
+        "media_type": {"const": "snapshot"},
+        "privacy_class": {"enum": ["local_only", "cloud_redacted", "cloud_allowed"]},
+        "availability": {"enum": ["available", "pending", "expired", "denied", "unknown"]},
+        "purpose": {"type": "string", "minLength": 1, "maxLength": 255}
+      }
+    },
+    "requested_output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["output_type", "schema_version", "required"],
+      "properties": {
+        "output_type": {"enum": ["caption", "tags"]},
+        "schema_version": {"const": "1.0"},
+        "required": {"type": "boolean"}
+      }
+    },
+    "privacy_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["policy_id", "policy_version", "route", "external_network_allowed", "retention"],
+      "properties": {
+        "policy_id": {"type": "string", "minLength": 1, "maxLength": 255},
+        "policy_version": {"type": "string", "minLength": 1, "maxLength": 255},
+        "route": {"enum": ["local_only", "cloud_redacted", "cloud_allowed"]},
+        "external_network_allowed": {"type": "boolean"},
+        "retention": {"enum": ["none", "ephemeral"]}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"route": {"const": "local_only"}}, "required": ["route"]},
+          "then": {"properties": {"external_network_allowed": {"const": false}}}
+        }
+      ]
+    }
+  }
+}

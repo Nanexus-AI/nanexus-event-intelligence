@@ -1,0 +1,138 @@
+{
+  "$defs": {
+    "MediaLimits": {
+      "additionalProperties": false,
+      "properties": {
+        "max_bytes": {
+          "exclusiveMinimum": 0,
+          "title": "Max Bytes",
+          "type": "integer"
+        },
+        "allowed_content_types": {
+          "items": {
+            "enum": [
+              "image/jpeg",
+              "image/png",
+              "image/webp"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Allowed Content Types",
+          "type": "array"
+        }
+      },
+      "required": [
+        "max_bytes",
+        "allowed_content_types"
+      ],
+      "title": "MediaLimits",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "capability_contract_version": {
+      "const": "1.0",
+      "title": "Capability Contract Version",
+      "type": "string"
+    },
+    "platform_version": {
+      "pattern": "^[0-9]+\\.[0-9]+(?:\\.[0-9]+)?$",
+      "title": "Platform Version",
+      "type": "string"
+    },
+    "api_versions": {
+      "items": {
+        "pattern": "^[0-9]+\\.[0-9]+(?:\\.[0-9]+)?$",
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Api Versions",
+      "type": "array"
+    },
+    "canonical_schema_versions": {
+      "items": {
+        "pattern": "^[0-9]+\\.[0-9]+(?:\\.[0-9]+)?$",
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Canonical Schema Versions",
+      "type": "array"
+    },
+    "processor_contract_versions": {
+      "items": {
+        "const": "1.0",
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Processor Contract Versions",
+      "type": "array"
+    },
+    "enrichment_result_versions": {
+      "items": {
+        "const": "1.0",
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Enrichment Result Versions",
+      "type": "array"
+    },
+    "supported_subject_types": {
+      "items": {
+        "const": "review_item",
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Supported Subject Types",
+      "type": "array"
+    },
+    "supported_evidence_types": {
+      "items": {
+        "const": "snapshot",
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Supported Evidence Types",
+      "type": "array"
+    },
+    "claim_writeback": {
+      "title": "Claim Writeback",
+      "type": "boolean"
+    },
+    "model_invocation": {
+      "title": "Model Invocation",
+      "type": "boolean"
+    },
+    "replay": {
+      "title": "Replay",
+      "type": "boolean"
+    },
+    "dry_run": {
+      "title": "Dry Run",
+      "type": "boolean"
+    },
+    "media_limits": {
+      "$ref": "#/$defs/MediaLimits"
+    }
+  },
+  "required": [
+    "capability_contract_version",
+    "platform_version",
+    "api_versions",
+    "canonical_schema_versions",
+    "processor_contract_versions",
+    "enrichment_result_versions",
+    "supported_subject_types",
+    "supported_evidence_types",
+    "claim_writeback",
+    "model_invocation",
+    "replay",
+    "dry_run",
+    "media_limits"
+  ],
+  "title": "Capability",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nanexus.local/schemas/capability-v1.json"
+}
